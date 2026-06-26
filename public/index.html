@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>کنترل ESP32</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    h1 { font-size: 24px; margin-bottom: 20px; color: #333; }
+    .status {
+      font-size: 18px;
+      margin-bottom: 30px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .status.on  { background: #e8f5e9; color: #2e7d32; }
+    .status.off { background: #f5f5f5; color: #555; }
+    .btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin: 8px 0;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-on  { background: #4CAF50; color: white; }
+    .btn-off { background: #555; color: white; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>کنترل ESP32 🔌</h1>
+    <div class="status off" id="statusBox">
+      وضعیت: <strong id="state">در حال بارگذاری...</strong>
+    </div>
+    <button class="btn btn-on"  onclick="control('ON')">روشن ✅</button>
+    <button class="btn btn-off" onclick="control('OFF')">خاموش ❌</button>
+  </div>
+
+  <script>
+    const server = "";  // چون سایت و سرور یکجان خالی بذار
+
+    async function control(state) {
+      await fetch(`/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state })
+      });
+      updateUI(state);
+    }
+
+    function updateUI(state) {
+      const box = document.getElementById('statusBox');
+      document.getElementById('state').innerText = state;
+      box.className = 'status ' + (state === 'ON' ? 'on' : 'off');
+    }
+
+    async function checkStatus() {
+      try {
+        const res = await fetch(`/status`);
+        const state = await res.text();
+        updateUI(state);
+      } catch(e) {}
+    }
+
+    setInterval(checkStatus, 2000);
+    checkStatus();
+  </script>
+</body>
+</html>
