@@ -3,87 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>کنترل ESP32</title>
+  <title>مانیتور قلب</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Arial;
-      text-align: center;
       background: #f0f0f0;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .card {
       background: white;
-      padding: 40px;
+      padding: 30px;
       border-radius: 16px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      width: 300px;
+      width: 200px;
+      text-align: center;
     }
-    h1 { font-size: 24px; margin-bottom: 20px; color: #333; }
+    .card h2 { font-size: 18px; color: #555; margin-bottom: 15px; }
+    .value { font-size: 48px; font-weight: bold; margin: 10px 0; }
+    .unit  { font-size: 16px; color: #888; }
+    .bpm-val  { color: #e53935; }
+    .spo2-val { color: #1e88e5; }
     .status {
-      font-size: 18px;
-      margin-bottom: 30px;
-      padding: 10px;
+      margin-top: 20px;
+      padding: 10px 20px;
       border-radius: 8px;
+      font-size: 14px;
+      color: white;
     }
-    .status.on  { background: #e8f5e9; color: #2e7d32; }
-    .status.off { background: #f5f5f5; color: #555; }
-    .btn {
-      width: 100%;
-      padding: 16px;
-      font-size: 20px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      margin: 8px 0;
-      transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.85; }
-    .btn-on  { background: #4CAF50; color: white; }
-    .btn-off { background: #555; color: white; }
+    .online  { background: #4CAF50; }
+    .offline { background: #e53935; }
+    .warning { background: #ff9800; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>کنترل ESP32 🔌</h1>
-    <div class="status off" id="statusBox">
-      وضعیت: <strong id="state">در حال بارگذاری...</strong>
+  <h1>❤️ مانیتور قلب و اکسیژن</h1>
+
+  <div class="cards">
+
+    <!-- کارت ضربان قلب -->
+    <div class="card">
+      <h2>💓 ضربان قلب</h2>
+      <div class="value bpm-val" id="bpm">--</div>
+      <div class="unit">BPM</div>
     </div>
-    <button class="btn btn-on"  onclick="control('ON')">روشن ✅</button>
-    <button class="btn btn-off" onclick="control('OFF')">خاموش ❌</button>
+
+    <!-- کارت اکسیژن خون -->
+    <div class="card">
+      <h2>🩸 اکسیژن خون</h2>
+      <div class="value spo2-val" id="spo2">--</div>
+      <div class="unit">درصد</div>
+    </div>
+
+  </div>
+
+  <!-- وضعیت اتصال -->
+  <div class="status offline" id="statusBox">
+    در حال اتصال...
   </div>
 
   <script>
-    const server = "";  // چون سایت و سرور یکجان خالی بذار
-
-    async function control(state) {
-      await fetch(`/control`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state })
-      });
-      updateUI(state);
-    }
-
-    function updateUI(state) {
-      const box = document.getElementById('statusBox');
-      document.getElementById('state').innerText = state;
-      box.className = 'status ' + (state === 'ON' ? 'on' : 'off');
-    }
-
-    async function checkStatus() {
+    async function fetchData() {
       try {
-        const res = await fetch(`/status`);
-        const state = await res.text();
-        updateUI(state);
-      } catch(e) {}
+        const res = await fetch('/sensor');
+        const data = await res.json();
+
+        // ضربان قلب
+        document.getElementById('bpm').innerText =
+          data.validBpm ? data.bpm : '--';
+
+        // اکسیژن خون
+        document.getElementById('spo2').innerText =
+          data.validSpo2 ? data.spo2 : '--';
+
+        // وضعیت
+        const box = document.getElementById('statusBox');
+        if (!data.validBpm && !data.validSpo2) {
+          box.className = 'status warning';
+          box.innerText = '⚠️ انگشت رو روی سنسور بذار';
+        } else {
+          box.className = 'status online';
+          box.innerText = '✅ متصل - داده دریافت میشه';
+        }
+
+      } catch(e) {
+        const box = document.getElementById('statusBox');
+        box.className = 'status offline';
+        box.innerText = '❌ اتصال قطع شد';
+      }
     }
 
-    setInterval(checkStatus, 2000);
-    checkStatus();
+    // هر ۲ ثانیه آپدیت کن
+    setInterval(fetchData, 2000);
+    fetchData();
   </script>
 </body>
 </html>
