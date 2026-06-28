@@ -7,17 +7,29 @@ app.use(express.json());
 app.use(express.static('public'));
 
 let gpioState = "OFF";
+let sensorData = {
+  bpm: 0,
+  spo2: 0,
+  validBpm: false,
+  validSpo2: false
+};
 
-app.get('/status', (req, res) => {
-  res.send(gpioState);
-});
-
+app.get('/status', (req, res) => res.send(gpioState));
 app.post('/control', (req, res) => {
   gpioState = req.body.state;
-  res.json({ success: true, state: gpioState });
+  res.json({ success: true });
+});
+
+app.post('/data', (req, res) => {
+  sensorData = req.body;
+  res.json({ success: true });
+});
+
+app.get('/sensor', (req, res) => {
+  res.json(sensorData);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`server roye port ${PORT} ejra shod`);
+  console.log(`سرور روی پورت ${PORT} اجرا شد`);
 });
